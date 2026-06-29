@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ToolCategory {
+  PDF
+  CONVERSION
+  IMAGE
+  AI
+  PRINT
+  WORKFLOW
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+model User {
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  email         String   @unique
+  name          String?
+  avatarUrl     String?
+  plan          SubscriptionPlan @default(FREE)
+  storageUsed   BigInt   @default(0)
+  storageLimit  BigInt   @default(104857600)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  files           File[]
+  jobs            Job[]
+  workflows       Workflow[]
+  subscriptions   Subscription[]
+  payments        Payment[]
+  activityLogs    ActivityLog[]
+  notifications   Notification[]
+
+  @@index([clerkId])
+  @@index([email])
+}
+
+model File {
+  id          String   @id @default(cuid())
+  userId      String
+  originalName String
+  storedName  String
+  mimeType    String
+  size        Int
+  path        String
+  url         String?
+  toolType    ToolCategory?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs   Job[]
+  pages  PDFPage[]
+
+  @@index([userId])
+  @@index([toolType])
+}
+
+model PDFPage {
+  id        String @id @default(cuid())
+  fileId    String
+  pageNum   Int
+  width     Float?
+  height    Float?
+  rotation  Int    @default(0)
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+}
+
+model Tool {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  slug        String       @unique
+  description String
+  category    ToolCategory
+  icon        String?
+  isActive    Boolean      @default(true)
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  jobs Job[]
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  userId      String
+  toolId      String?
+  fileId      String?
+  type        String
+  status      JobStatus @default(PENDING)
+  progress    Int       @default(0)
+  config      Json?
+  result      Json?
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool        Tool?        @relation(fields: [toolId], references: [id])
+  file        File?        @relation(fields: [fileId], references: [id])
+  executions  WorkflowExecution[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  steps       Json
+  isTemplate  Boolean  @default(false)
+  isScheduled Boolean  @default(false)
+  schedule    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions  WorkflowExecution[]
+
+  @@index([userId])
+}
+
+model WorkflowExecution {
+  id         String    @id @default(cuid())
+  workflowId String
+  jobId      String?
+  status     JobStatus @default(PENDING)
+  result     Json?
+  error      String?
+  startedAt  DateTime?
+  completedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  job      Job?     @relation(fields: [jobId], references: [id])
+
+  @@index([workflowId])
+}
+
+model Subscription {
+  id            String           @id @default(cuid())
+  userId        String           @unique
+  plan          SubscriptionPlan @default(FREE)
+  stripeId      String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  status        String           @default("active")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  stripeId        String   @unique
+  amount          Int
+  currency        String   @default("usd")
+  status          String
+  description     String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String?
+  type      String   @default("info")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
