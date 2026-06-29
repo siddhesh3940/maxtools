@@ -13,9 +13,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const contactInfo = [
-  { icon: Mail, label: "Email", value: "hello@maxtools.com" },
-  { icon: Phone, label: "Phone", value: "+1 (555) 123-4567" },
-  { icon: MapPin, label: "Location", value: "San Francisco, CA" },
+  { icon: Mail, label: "Email", value: "sidvaishnav1234@gmail.com" },
+  { icon: Phone, label: "Phone", value: "+91 7774842406" },
+  { icon: MapPin, label: "Location", value: "Vasai, India" },
   { icon: Clock, label: "Response Time", value: "Within 24 hours" },
 ]
 
