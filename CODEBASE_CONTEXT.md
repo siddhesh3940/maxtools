@@ -9,9 +9,10 @@
 
 MaxTools is a **Next.js 16 SaaS web app** — an online PDF & file processing toolkit.
 Users upload files, run tools (PDF, conversion, image, AI, print, workflow), and download results.
-It has a public marketing site, an authenticated dashboard, and an admin panel.
+It has a public marketing/tool site and an authenticated dashboard.
 
 **GitHub:** https://github.com/siddhesh3940/maxtools
+**Live:** https://maxtools-three.vercel.app
 
 ---
 
@@ -20,47 +21,42 @@ It has a public marketing site, an authenticated dashboard, and an admin panel.
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| Auth | Clerk (`@clerk/nextjs` v6) — middleware protects all routes |
-| Database | PostgreSQL via Prisma ORM v6 |
-| Queue / Workers | BullMQ + Redis (separate worker process) |
+| Auth | Clerk (`@clerk/nextjs` v6) |
+| Database | PostgreSQL via Prisma ORM v6 (Neon in production) |
+| Queue / Workers | BullMQ + Redis (Upstash in production) |
 | File Storage | Cloudflare R2 (falls back to `public/uploads/` locally) |
-| AI | OpenAI API (`gpt-4o-mini` default) |
+| AI | OpenAI API (`gpt-4o-mini`) |
 | PDF Processing | `pdf-lib` (manipulation), `pdfjs-dist` (rendering) |
-| UI | Radix UI primitives + Tailwind CSS v4 + shadcn-style components |
+| UI | Radix UI + Tailwind CSS v4 + shadcn-style components |
 | Animations | Framer Motion |
 | Charts | Recharts |
 | Forms | React Hook Form + Zod |
-| Fonts | Geist Sans + Geist Mono (next/font/google) |
-| Theme | Custom ThemeProvider (localStorage + system preference, replaces next-themes) |
-| Deployment | Docker / Docker Compose; configs for Vercel, Railway, Coolify |
+| Fonts | Geist Sans + Geist Mono |
+| Theme | `next-themes` (wrapped in custom `ThemeProvider` + `useTheme`) |
+| Deployment | Vercel (app) + Railway (worker) |
 
 ---
 
 ## Route Structure
 
 ```
-/                          → Marketing homepage (app/page.tsx)
-/pricing                   → Pricing page
-/blog                      → Blog
-/contact                   → Contact
-/sign-in                   → Clerk sign-in page
-/sign-up                   → Clerk sign-up page
-/dashboard                 → Authenticated dashboard home
-/pdf/[slug]                → PDF tool pages (real processing)
-/convert/[slug]            → Conversion tool pages
-/image/[slug]              → Image tool pages
-/ai/[slug]                 → AI tool pages
-/print/[slug]              → Print tool pages
-/cut-and-stack             → Cut & stack imposition tool
-/workflow                  → Workflow builder
-/batch                     → Batch processing
-/admin                     → Admin panel home
-/admin/analytics           → Admin analytics
-/admin/files               → Admin file manager
-/admin/jobs                → Admin job manager
-/admin/logs                → Admin logs
-/admin/users               → Admin user manager
+/                    → Marketing homepage — tool grid + hero (server component)
+/tools               → All tools listing page
+/pricing             → Pricing page
+/blog                → Blog
+/contact             → Contact (email: sidvaishnav1234@gmail.com, +91 7774842406, Vasai India)
+/sign-in             → Clerk sign-in
+/sign-up             → Clerk sign-up
+/pdf/[slug]          → PDF tool page (real processing)
+/convert/[slug]      → Conversion tool page
+/print/[slug]        → Print tool page
+/dashboard           → Authenticated dashboard home
+/workflow            → Workflow builder
+/batch               → Batch processing
+/admin/*             → Admin panel
 ```
+
+After sign-in/sign-up → redirects to `/` (homepage).
 
 ---
 
@@ -69,292 +65,251 @@ It has a public marketing site, an authenticated dashboard, and an admin panel.
 ```
 src/
   app/
-    (dashboard)/           # Route group — "use client" boundary
-      page.tsx             # Redirects / → /dashboard
+    (dashboard)/           # "use client" route group → DashboardLayout
       layout.tsx           # "use client" — renders DashboardLayout directly
-      dashboard/
-        page.tsx           # Main dashboard UI at /dashboard
-      ai/[slug]/page.tsx
+      dashboard/page.tsx   # Dashboard home (/dashboard)
       batch/page.tsx
-      convert/[slug]/page.tsx
-      cut-and-stack/page.tsx
-      image/[slug]/page.tsx
-      pdf/[slug]/page.tsx  # Real PDF tool — upload → /api/process → binary download
-      print/[slug]/page.tsx
-      workflow/page.tsx
+      workflow/page.tsx    # Workflow builder with Workflow icon in header
 
-    (marketing)/           # Route group — uses root Providers via app/layout.tsx
-      layout.tsx           # Wraps with MarketingLayout only (Providers in root)
+    (marketing)/           # Route group — layout is passthrough (<>{children}</>)
+      layout.tsx           # No extra wrapping — root layout handles Providers
       blog/page.tsx
-      contact/page.tsx
+      contact/page.tsx     # sidvaishnav1234@gmail.com, +91 7774842406, Vasai India
       pricing/page.tsx
-      # NO page.tsx here — homepage lives at app/page.tsx
+
+    (tools)/               # Public tool pages — Header + Footer layout
+      layout.tsx           # Header + main + Footer
+      pdf/[slug]/page.tsx  # Real PDF tool — upload → /api/process → download
+      convert/[slug]/page.tsx
+      print/[slug]/page.tsx
 
     admin/
-      layout.tsx
-      page.tsx
-      analytics/page.tsx
-      files/page.tsx
-      jobs/page.tsx
-      logs/page.tsx
-      users/page.tsx
+      layout.tsx, page.tsx
+      analytics/, files/, jobs/, logs/, users/
 
     api/
-      auth/webhook/route.ts          # Clerk webhook (user sync)
-      dashboard/stats/route.ts       # Dashboard statistics
-      files/route.ts                 # GET list files (paginated, ?mimeType)
-      files/[id]/route.ts            # GET / DELETE single file (soft delete)
-      jobs/route.ts                  # GET list / POST create job
-      jobs/[id]/route.ts             # GET / PATCH single job
-      process/route.ts               # POST multipart — real PDF ops, returns binary PDF
-      tools/route.ts                 # GET list tools
+      auth/webhook/route.ts          # Clerk webhook
+      ai/route.ts                    # AI processing endpoint
+      convert/route.ts               # Conversion endpoint
+      dashboard/stats/route.ts       # Stats
+      files/route.ts                 # GET list files
+      files/[id]/route.ts            # GET / DELETE file
+      image/route.ts                 # Image processing
+      jobs/route.ts                  # GET / POST jobs
+      jobs/[id]/route.ts             # GET / PATCH job
+      print/route.ts                 # Print processing
+      process/route.ts               # POST — real PDF ops, binary response
+      tools/route.ts                 # GET tools list
       tools/[slug]/route.ts          # GET tool by slug
-      upload/route.ts                # POST multipart file upload → R2/local + DB
-      workflows/route.ts             # GET list / POST create workflow
+      upload/route.ts                # POST file upload
+      workflows/route.ts             # GET / POST workflows
       workflows/[id]/route.ts        # GET / PUT / DELETE workflow
-      workflows/[id]/execute/route.ts  # POST execute workflow
+      workflows/[id]/execute/route.ts
 
     sign-in/[[...sign-in]]/page.tsx
     sign-up/[[...sign-up]]/page.tsx
-    layout.tsx             # Root — ClerkProvider + Providers + Geist fonts + theme inline script
-    page.tsx               # Full marketing homepage (SignedIn/SignedOut Clerk buttons)
+    tools/page.tsx                   # /tools — all tools listing
+    layout.tsx                       # Root: ClerkProvider + Providers + Geist fonts
+    page.tsx                         # Homepage (server component, tool grid)
     globals.css
     favicon.ico
 
   components/
     layout/
-      dashboard-layout.tsx   # Sidebar + topbar; uses useTheme from @/providers/theme-provider
-      marketing-layout.tsx   # Header + Footer
-      header.tsx             # Marketing header; SignInButton/SignUpButton mode="modal"
-      footer.tsx
-    print/
-      cut-and-stack.tsx
-    tools/                   # Tool UI components (mostly empty stubs)
-    ui/                      # shadcn-style primitives:
-                             # avatar, badge, button, card, checkbox, dialog,
-                             # dropdown-menu, file-upload, input, label, progress,
-                             # scroll-area, select, separator, skeleton, slider,
-                             # switch, table, tabs, textarea, toast, tooltip
+      dashboard-layout.tsx  # Sidebar (collapsible, auto-expands active) + topbar
+                            # Uses useTheme from @/providers/theme-provider
+                            # Sidebar categories from PDF_TOOLS/CONVERSION_TOOLS constants
+      marketing-layout.tsx  # Header + Footer (used by (tools) layout)
+      header.tsx            # Sticky header; SignedOut: SignIn/SignUp modal buttons
+                            # SignedIn: UserButton only (no Dashboard button)
+      footer.tsx            # Links + © MaxTools + "by Siddhesh Vaishnav"
+    tools/                  # Tool UI components
+    ui/                     # shadcn-style: avatar, badge, button, card, checkbox,
+                            # dialog, dropdown-menu, file-upload, input, label,
+                            # progress, scroll-area, select, separator, skeleton,
+                            # slider, switch, table, tabs, textarea, toast, tooltip
     workflow/
       workflow-builder.tsx
-    ai/                      # AI components (mostly empty)
+    ai/                     # AI components
 
   lib/
-    ai/index.ts              # OpenAI helpers (summarize, MCQs, flashcards, chat, etc.)
-    cloudflare/r2.ts         # R2 storage (local fallback)
+    ai/index.ts             # OpenAI helpers
+    cloudflare/r2.ts        # R2 storage + local fallback
     pdf/
-      engine.ts              # pdf-lib operations
-      conversion.ts          # Image↔PDF helpers
+      engine.ts             # pdf-lib operations
+      conversion.ts         # Image↔PDF
       index.ts
     print/
-      cut-and-stack.ts       # Pure imposition algorithm
+      booklet-optimizer.ts  # Print optimization algorithm
     workflow/
-      engine.ts              # Workflow execution engine
-    api-helpers.ts           # Response helpers
-    constants.ts             # Tool lists, limits, plan configs
-    db.ts                    # Prisma singleton
-    queue.ts                 # BullMQ queue instances
-    utils.ts                 # cn() utility
+      engine.ts             # Workflow execution engine
+    api-helpers.ts
+    constants.ts            # PDF_TOOLS (with category), CONVERSION_TOOLS, POWER_TOOLS,
+                            # PRINT_TOOLS, TOOL_CATEGORIES, limits, plan configs
+    db.ts                   # Prisma singleton
+    queue.ts                # BullMQ queues
+    utils.ts                # cn()
 
   providers/
-    providers.tsx            # ThemeProvider + Toaster wrapper
-    theme-provider.tsx       # Custom theme (ThemeProvider + useTheme hook)
+    providers.tsx           # ThemeProvider (next-themes) + Toaster
+    theme-provider.tsx      # Wraps next-themes; exports ThemeProvider + useTheme()
 
-  types/index.ts             # All shared TypeScript types
-  middleware.ts              # clerkMiddleware() on all routes
+  types/index.ts
+  middleware.ts             # clerkMiddleware() on all routes
 
   workers/
-    index.ts                 # startWorkers() / stopWorkers()
-    pdf-worker.ts            # BullMQ pdf-processing queue worker
-    print-worker.ts          # BullMQ print-production queue worker
+    index.ts                # startWorkers() / stopWorkers()
+    pdf-worker.ts           # pdf-processing queue, concurrency 3
 
 prisma/schema.prisma
 docker-compose.yml
-Dockerfile                   # Next.js standalone app
-Dockerfile.worker            # Worker: npx tsx src/workers/index.ts
-next.config.ts               # output: standalone, serverExternalPackages: [pdf-lib]
-vercel.json                  # buildCommand: npx prisma generate && next build
-.env                         # DATABASE_URL only (Prisma CLI)
-.env.local                   # All secrets (gitignored)
+Dockerfile / Dockerfile.worker (npx tsx src/workers/index.ts)
+next.config.ts              # output: standalone, serverExternalPackages: [pdf-lib]
+vercel.json                 # buildCommand: npx prisma generate && next build
+.env                        # DATABASE_URL (Prisma CLI)
+.env.local                  # All secrets (gitignored)
 ```
 
 ---
 
-## Layout Hierarchy (Important)
+## Layout Hierarchy
 
 ```
-app/layout.tsx  (server component)
-  └─ ClerkProvider
-      └─ Providers (ThemeProvider + Toaster)   ← wraps EVERYTHING
-          └─ (marketing)/layout.tsx → MarketingLayout
-          └─ (dashboard)/layout.tsx ("use client") → DashboardLayout
-          └─ admin/layout.tsx
-          └─ sign-in, sign-up pages
+app/layout.tsx  (server)
+  ClerkProvider
+    Providers (ThemeProvider via next-themes + Toaster)
+      (marketing)/layout.tsx  → passthrough
+      (tools)/layout.tsx      → Header + Footer
+      (dashboard)/layout.tsx  → "use client" → DashboardLayout
+      admin/layout.tsx
+      sign-in, sign-up pages
+      app/page.tsx (homepage — server component)
 ```
-
-`app/layout.tsx` includes a minimal inline `<script>` in `<head>` that reads `localStorage` and applies the `dark` class before hydration to prevent flash. This is intentional — it's a one-liner, not `next-themes`.
 
 ---
 
 ## Theme System
 
-Custom implementation in `src/providers/theme-provider.tsx` (replaces `next-themes`):
-- `ThemeProvider` — reads `localStorage["theme"]` on mount, applies dark/light class to `document.documentElement`, listens to system preference changes
-- `useTheme()` — returns `{ theme, setTheme, resolvedTheme }`. Returns a **safe default** (no throw) when called outside provider for SSR safety
-- Used in: `DashboardLayout` (theme toggle button), `Header` (marketing)
+`src/providers/theme-provider.tsx` wraps `next-themes`:
+- `ThemeProvider` — `NextThemesProvider` with `attribute="class"`, `defaultTheme="system"`, `enableSystem`, `disableTransitionOnChange`
+- `useTheme()` — wraps `useNextTheme()`, returns typed `{ theme, setTheme, resolvedTheme }` with safe defaults
+- Used in: `DashboardLayout` (toggle button), `Header` (toggle button)
+- `suppressHydrationWarning` on `<html>` tag prevents hydration mismatch
+
+---
+
+## Tool Categories & Slugs (from `constants.ts`)
+
+### PDF_TOOLS (with category field)
+| Slug | Category |
+|---|---|
+| `compress-pdf` | COMPRESS |
+| `merge-pdf`, `split-pdf` | MERGE_SPLIT |
+| `sign-pdf`, `watermark-pdf` | EDIT_SIGN |
+| `unlock-pdf`, `protect-pdf` | SECURITY |
+| `organize-pdf`, `rotate-pdf`, `repair-pdf` | ORGANIZE |
+
+### CONVERSION_TOOLS
+`images-to-pdf`
+
+### POWER_TOOLS
+`booklet-optimizer`, `workflow-builder`, `batch-processing`, `smart-print`
+
+### PRINT_TOOLS
+`booklet-optimizer`, `smart-print`
 
 ---
 
 ## `/api/process` — Real PDF Processing
 
 **Request:** `multipart/form-data`
-- `tool` — tool slug
+- `tool` — slug string
 - `file` — one or more File blobs
-- Config fields per tool (see below)
+- Config fields per tool:
 
-**Supported tools & config:**
-
-| Tool | Config fields |
+| Tool | Config |
 |---|---|
-| `merge-pdf` | none (multiple `file` entries) |
-| `split-pdf` | `range` — e.g. `"1-5,7,9-12"` (optional, splits all if empty) |
-| `compress-pdf` | `quality` — number 10-100 |
-| `rotate-pdf` | `degrees` — 90, 180, 270 |
-| `delete-pages` | `pages` — comma-separated e.g. `"1,3,5"` |
-| `extract-pages` | `pages` — comma-separated |
-| `watermark-pdf` | `watermarkText`, `opacity` — 5-100 |
+| `merge-pdf` | multiple `file` entries |
+| `split-pdf` | `range` e.g. `"1-5,7"` |
+| `compress-pdf` | `quality` 10-100 |
+| `rotate-pdf` | `degrees` 90/180/270 |
+| `delete-pages` | `pages` comma-separated |
+| `extract-pages` | `pages` comma-separated |
+| `watermark-pdf` | `watermarkText`, `opacity` |
 | `unlock-pdf` | `password` |
 | `flatten-pdf` | none |
 | `sign-pdf` | `signatureText` |
 
 **Response:**
-- Single result → `application/pdf` binary with `Content-Disposition: attachment; filename="..."`
-- Multiple results (split) → `{ success: true, files: [{ name, data: base64 }] }`
+- Single → `application/pdf` binary with `Content-Disposition: attachment`
+- Multiple (split) → `{ success: true, files: [{ name, data: base64 }] }`
 
 ---
 
 ## PDF Tool Page (`/pdf/[slug]`)
 
-Real end-to-end flow:
-1. User drops/selects file(s) via `FileUpload` component
-2. Fills in tool config (rotation angle, page range, watermark text, etc.)
-3. Clicks "Process File" → builds `FormData` → `POST /api/process`
-4. Success → result stored as `Blob` in state
-5. Download triggered via `URL.createObjectURL` + programmatic `<a>` click
-6. Split results → one `Download` button per output file
-7. Errors shown inline with `AlertCircle`
+1. Drop/select file via `FileUpload`
+2. Fill config fields
+3. Click "Process File" → `FormData` → `POST /api/process`
+4. Result stored as `Blob`
+5. Download via `URL.createObjectURL` + `<a>` click
+6. Split → one download button per file
+7. Errors shown inline
 
 ---
 
-## Database Models (Prisma / PostgreSQL)
+## Database Models
 
 ```
-User            clerkId(unique), email, name, plan, storageUsed, storageLimit
+User            clerkId, email, name, plan, storageUsed, storageLimit
                 → files, jobs, workflows, subscriptions, payments, activityLogs, notifications
-File            userId, originalName, storedName, mimeType, size, path, url, toolType
-                soft-delete via deletedAt
+File            userId, originalName, storedName, mimeType, size, path, url, toolType, deletedAt
 PDFPage         fileId, pageNum, width, height, rotation
 Tool            name, slug, description, category, icon, isActive, order
 Job             userId, toolId?, fileId?, type, status, progress, config(JSON), result(JSON), error
 Workflow        userId, name, steps(JSON), isTemplate, isScheduled, schedule
 WorkflowExecution  workflowId, jobId?, status, result, error
-Subscription    userId(unique), plan, stripeId, currentPeriodStart/End, status
+Subscription    userId, plan, stripeId, currentPeriodStart/End, status
 Payment         userId, stripeId, amount, currency, status
 ActivityLog     userId, action, details(JSON)
 Notification    userId, title, message, type, isRead
 ```
 
-**Enums:** `ToolCategory` (PDF/CONVERSION/IMAGE/AI/PRINT/WORKFLOW), `JobStatus` (PENDING/PROCESSING/COMPLETED/FAILED/CANCELLED), `SubscriptionPlan` (FREE/PRO/BUSINESS/ENTERPRISE)
-
 ---
 
-## Key Lib Modules
-
-### `lib/pdf/engine.ts`
-All functions: `Buffer` in, `Buffer` / `Buffer[]` out. Uses `pdf-lib`.
-`mergePDFs`, `splitPDF`, `compressPDF`, `rotatePDFPages`, `reorderPages`, `deletePages`, `extractPages`, `addWatermark`, `unlockPDF`, `flattenPDF`, `signPDF`, `getPDFInfo`
-> `protectPDF` throws — pdf-lib doesn't support encryption.
-
-### `lib/ai/index.ts`
-OpenAI fetch. Model: `gpt-4o-mini`. Text capped at 50k chars. All functions degrade gracefully if `OPENAI_API_KEY` missing.
-`summarizeText`, `generateMCQs`, `generateFlashcards`, `extractKeyPoints`, `generateNotes`, `chatWithDocument`
-
-### `lib/cloudflare/r2.ts`
-`uploadFile(buffer, key, contentType) → url`, `getSignedUrl(key)`, `deleteFile(key)`
-Falls back to `public/uploads/` when R2 env vars absent.
-
-### `lib/workflow/engine.ts`
-`executeWorkflow(steps, inputFileIds) → { fileIds, results }`
-Chains steps by calling `/api/process` per tool.
-
-### `lib/queue.ts`
-`pdfQueue`, `conversionQueue`, `printQueue`, `aiQueue`, `addJob(queue, name, data, opts?)`
-
-### `lib/api-helpers.ts`
-`successResponse`, `errorResponse`, `unauthorizedResponse`, `forbiddenResponse`, `notFoundResponse`, `rateLimitResponse`
-
-### `lib/utils.ts`
-`cn(...inputs)` — clsx + tailwind-merge
-
----
-
-## Workers
-
-Separate process via `Dockerfile.worker` → `npx tsx src/workers/index.ts`
-
-- **pdf-worker** — `pdf-processing` queue, concurrency 3
-  Handles: `merge`, `split`, `compress`, `rotate`, `reorder`, `delete-pages`, `extract-pages`
-- **print-worker** — `print-production` queue, concurrency 2
-  Handles: `cut-and-stack`, `booklet`, `n-up`
-
-Job lifecycle: DB status `PROCESSING` → run processor → `COMPLETED` / `FAILED`
-
----
-
-## Subscription Plans & Limits
-
-| Plan | Storage | File Retention |
-|---|---|---|
-| FREE | 100 MB | 7 days |
-| PRO | 1 GB | 30 days |
-| BUSINESS | 10 GB | 30 days |
-| ENTERPRISE | 100 GB | 30 days |
-
-Max file size: 100 MB hard limit (10 MB for free tier). Max batch: 100 files.
-
----
-
-## Environment Variables (`.env.local`)
+## Environment Variables
 
 ```env
+# Database (Neon)
 DATABASE_URL=postgresql://...
 
+# Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/dashboard
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/
 
-REDIS_HOST=
+# Redis (Upstash)
+REDIS_HOST=noble-falcon-95643.upstash.io
 REDIS_PORT=6379
-REDIS_PASSWORD=
+REDIS_PASSWORD=...
+REDIS_URL=rediss://...
 
-R2_ENDPOINT=
+# Cloudflare R2
+R2_ENDPOINT=https://7fdec2250bc71500bea67654bfcdfb7a.r2.cloudflarestorage.com
 R2_BUCKET_NAME=maxtools
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_PUBLIC_URL=
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_PUBLIC_URL=https://pub-6a1e180967f9460d8f87015a29a344f4.r2.dev
 
+# OpenAI (optional)
 OPENAI_API_KEY=
 
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+# App
+NEXT_PUBLIC_APP_URL=https://maxtools-three.vercel.app
 NEXT_PUBLIC_APP_NAME=MaxTools
-```
-
-`.env` (Prisma CLI only):
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=public
 ```
 
 ---
@@ -362,35 +317,30 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=publi
 ## Local Development
 
 ```bash
-# Requirements: Node.js v20+, Docker Desktop
-
+# Node.js v20+, Docker Desktop required
 docker-compose up postgres redis -d
 npm install
 npx prisma db push
 
-# Terminal 1 — app
+# Terminal 1
 npm run dev
 
-# Terminal 2 — workers
+# Terminal 2
 npx tsx src/workers/index.ts
 ```
 
-App → http://localhost:3000. Files saved to `public/uploads/` locally.
-
 ---
 
-## Deployment (Free Tier Stack)
+## Production Deployment
 
-| Service | Purpose | Free Limit |
-|---|---|---|
-| Vercel | Next.js app | Unlimited hobby |
-| Neon | PostgreSQL | 0.5 GB |
-| Upstash | Redis | 10K cmds/day |
-| Cloudflare R2 | File storage | 10 GB |
-| Clerk | Auth | 10K MAU |
-| Railway | BullMQ worker | $5/month credit |
-
-Only paid: **OpenAI API** (AI tools return graceful fallback without it).
+| Service | URL |
+|---|---|
+| App | https://maxtools-three.vercel.app |
+| Database | Neon PostgreSQL |
+| Redis | Upstash |
+| Storage | Cloudflare R2 |
+| Auth | Clerk |
+| Worker | Railway (Dockerfile.worker) |
 
 ---
 
@@ -398,27 +348,29 @@ Only paid: **OpenAI API** (AI tools return graceful fallback without it).
 
 | Bug | Fix |
 |---|---|
-| Route conflict — two `page.tsx` resolving to `/` | Deleted `(marketing)/page.tsx`, moved to `app/page.tsx`, `(dashboard)/page.tsx` redirects |
-| Clerk modal error when already signed in | `<SignedOut>` wraps `SignUpButton`, `<SignedIn>` shows "Go to Dashboard" |
-| Deprecated Clerk env vars | Replaced `AFTER_SIGN_IN_URL` with `SIGN_IN_FORCE_REDIRECT_URL` |
-| Prisma `DATABASE_URL` not found | Created `.env` file |
-| Prisma schema — missing `payments` relation on `User` | Added `payments Payment[]` |
-| `Dockerfile.worker` ran `.ts` with `node` | Fixed to `npx tsx` |
-| `next-themes` React 19 script tag warning | Replaced with custom `ThemeProvider` |
-| `useTheme` throws on SSR | Returns safe default instead of throwing |
-| `(dashboard)/layout.tsx` not a client boundary | Added `"use client"` |
-| PDF tool page was entirely fake (fake timer) | Rewrote to real upload → `/api/process` → binary download |
-| Node.js v18 too low | Upgraded to v20 via nvm |
+| Route conflict — two pages at `/` | Deleted `(marketing)/page.tsx`, homepage at `app/page.tsx` |
+| Clerk modal error when signed in | `<SignedOut>` wraps buttons |
+| Deprecated Clerk env vars | Using `FORCE_REDIRECT_URL` |
+| Prisma `DATABASE_URL` not found | Created `.env` |
+| Missing `payments` relation on `User` | Added to schema |
+| `Dockerfile.worker` used `node` on `.ts` | Fixed to `npx tsx` |
+| Theme flash on navigation | Switched to `next-themes` |
+| `useTheme` throws on SSR | Wraps `next-themes` with safe defaults |
+| `(dashboard)/layout.tsx` not client boundary | Added `"use client"` |
+| Manual `<script>` tag React 19 warning | Removed, `next-themes` handles it |
+| PDF tool page was fake | Rewrote to real upload → process → download |
+| Node.js v18 too low | Upgraded to v20 |
+| After sign-in went to old UI | Redirect changed to `/` |
 
 ---
 
-## Known Gaps / Not Yet Implemented
+## Known Gaps
 
-- Conversion tool backends (Word/Excel/PPT ↔ PDF) — UI exists, no processor
+- Conversion tool backends — UI exists, no processor
 - Image tool backends — UI exists, no processor
 - `protect-pdf` — pdf-lib doesn't support encryption
-- `pdfToImages()` returns placeholder — needs canvas renderer
-- `reorder-pages`, `compare-pdfs`, `repair-pdf` not wired in `/api/process`
+- `pdfToImages()` — needs canvas renderer
+- `reorder-pages`, `compare-pdfs`, `repair-pdf` not in `/api/process`
 - Stripe payment webhook — schema exists, no handler
 - Subscription plan enforcement — no tool-level gating
 - Admin panel — UI only, no real data fetching

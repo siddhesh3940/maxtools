@@ -1,20 +1,21 @@
 # MaxTools
 
-**The Ultimate PDF & File Toolkit** — Convert, edit, merge, split, compress, and process your documents online. Built with Next.js 16, Clerk auth, PostgreSQL, and pdf-lib.
+**The Ultimate PDF & File Toolkit** — Merge, split, compress, convert, watermark, sign and process your documents online. Built with Next.js 16, Clerk, PostgreSQL, and pdf-lib.
 
-🔗 **GitHub:** https://github.com/siddhesh3940/maxtools
+🔗 **Live:** https://maxtools-three.vercel.app
+🐙 **GitHub:** https://github.com/siddhesh3940/maxtools
 
 ---
 
 ## Features
 
-- **PDF Tools** — Merge, split, compress, rotate, watermark, sign, flatten, unlock, delete/extract pages
-- **Conversion** — PDF ↔ Word, Excel, PPT, JPG, PNG, HTML *(backends in progress)*
-- **Image Tools** — Resize, compress, crop, convert, remove background *(backends in progress)*
-- **AI Tools** — Summarize, extract key points, generate MCQs, flashcards, study notes, chat with PDF *(requires OpenAI key)*
-- **Print Production** — Cut & stack imposition, N-up, booklet maker
+- **PDF Tools** — Merge, split, compress, rotate, watermark, sign, flatten, unlock, organize pages
+- **Conversion** — Images to PDF, PDF to various formats *(backends in progress)*
+- **Print Production** — Booklet optimizer, smart print mode
+- **AI Tools** — Summarize, extract key points, generate MCQs, flashcards, chat with PDF *(requires OpenAI key)*
 - **Workflow Builder** — Chain multiple tools into automated pipelines
 - **Batch Processing** — Process multiple files at once
+- **Dark / Light Mode** — System-aware theme with no flash
 
 ---
 
@@ -24,12 +25,14 @@
 |---|---|
 | Framework | Next.js 16 (App Router), React 19, TypeScript |
 | Auth | Clerk |
-| Database | PostgreSQL + Prisma |
-| Queue | BullMQ + Redis |
-| Storage | Cloudflare R2 (local fallback) |
-| AI | OpenAI API |
+| Database | PostgreSQL + Prisma (Neon in production) |
+| Queue | BullMQ + Redis (Upstash in production) |
+| Storage | Cloudflare R2 (local fallback to `public/uploads/`) |
+| AI | OpenAI API (`gpt-4o-mini`) |
 | PDF | pdf-lib |
 | UI | Radix UI + Tailwind CSS v4 |
+| Theme | next-themes |
+| Animations | Framer Motion |
 
 ---
 
@@ -61,7 +64,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Start Workers (optional — needed for background job processing)
+### Start Workers (optional — needed for background jobs)
 
 ```bash
 npx tsx src/workers/index.ts
@@ -71,19 +74,19 @@ npx tsx src/workers/index.ts
 
 ## Environment Variables
 
-Create a `.env.local` file in the project root:
+Create `.env.local`:
 
 ```env
 # Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=public
 
-# Clerk Auth — get from clerk.com
+# Clerk — get from clerk.com
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/dashboard
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/
 
 # Redis
 REDIS_HOST=localhost
@@ -105,7 +108,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_APP_NAME=MaxTools
 ```
 
-Also create a `.env` file (used by Prisma CLI):
+Also create `.env` (Prisma CLI):
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=public
@@ -113,11 +116,24 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=publi
 
 ---
 
+## How PDF Processing Works
+
+1. User selects file(s) and configures options on the tool page
+2. Client sends `multipart/form-data` to `POST /api/process` with `tool` slug + files + config
+3. Server runs the pdf-lib operation
+4. Returns binary PDF (`application/pdf`) for single results
+5. Returns base64 JSON array for multiple results (e.g. split)
+6. Browser triggers file download automatically
+
+**Supported:** merge, split, compress, rotate, watermark, unlock, flatten, sign, delete pages, extract pages
+
+---
+
 ## Deployment (Free Stack)
 
 | Service | Purpose | Free Tier |
 |---|---|---|
-| [Vercel](https://vercel.com) | Host Next.js app | Unlimited hobby |
+| [Vercel](https://vercel.com) | Next.js app | Unlimited hobby |
 | [Neon](https://neon.tech) | PostgreSQL | 0.5 GB |
 | [Upstash](https://upstash.com) | Redis | 10K cmds/day |
 | [Cloudflare R2](https://cloudflare.com) | File storage | 10 GB |
@@ -127,16 +143,16 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=publi
 ### Deploy to Vercel
 
 1. Push to GitHub
-2. Import repo at [vercel.com/new](https://vercel.com/new)
-3. Add all environment variables in the Vercel dashboard
-4. Vercel uses `vercel.json` build command: `npx prisma generate && next build`
+2. Import at [vercel.com/new](https://vercel.com/new)
+3. Add all env vars in Vercel dashboard
+4. `vercel.json` build command: `npx prisma generate && next build`
 5. Run `npx prisma db push` against your Neon DB
 
 ### Deploy Worker to Railway
 
-1. New project → Deploy from GitHub repo
-2. Set **Dockerfile Path** to `Dockerfile.worker` in service settings
-3. Add same environment variables as Vercel
+1. New project → Deploy from GitHub
+2. Settings → Build → **Dockerfile Path**: `Dockerfile.worker`
+3. Add same env vars as Vercel
 
 ---
 
@@ -145,38 +161,28 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/maxtools?schema=publi
 ```
 src/
   app/
-    (dashboard)/     # Authenticated routes — PDF, AI, print, workflow tools
+    (dashboard)/     # Authenticated routes — dashboard, workflow, batch
     (marketing)/     # Public routes — pricing, blog, contact
+    (tools)/         # Tool pages — pdf, convert, print
     admin/           # Admin panel
     api/             # API routes
+    tools/           # /tools listing page
   components/
-    layout/          # Dashboard + marketing layouts, header, footer
+    layout/          # Dashboard layout, marketing header/footer
     ui/              # Shared UI primitives (shadcn-style)
+    workflow/        # Workflow builder component
   lib/
     pdf/             # pdf-lib operations
     ai/              # OpenAI helpers
     cloudflare/      # R2 storage
-    print/           # Cut-and-stack algorithm
+    print/           # Booklet optimizer
     workflow/        # Workflow execution engine
-  providers/         # Theme + Toaster providers
-  workers/           # BullMQ workers (pdf, print)
+  providers/         # next-themes ThemeProvider + Toaster
+  workers/           # BullMQ workers
   types/             # Shared TypeScript types
 prisma/
-  schema.prisma      # Full database schema
+  schema.prisma
 ```
-
----
-
-## How PDF Processing Works
-
-1. User selects file(s) and configures options on the tool page
-2. Client sends `multipart/form-data` to `POST /api/process` with `tool` slug + files + config
-3. Server runs the appropriate `pdf-lib` operation
-4. Returns a binary PDF response (`application/pdf`) for single results
-5. Returns base64 JSON for multiple results (e.g. split)
-6. Browser triggers file download automatically
-
-**Supported PDF operations:** merge, split, compress, rotate, watermark, unlock, flatten, sign, delete pages, extract pages
 
 ---
 
@@ -194,13 +200,25 @@ prisma/
 ## Contributing
 
 1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -m 'add my feature'`
+2. Create a branch: `git checkout -b feature/my-feature`
+3. Commit: `git commit -m 'add my feature'`
 4. Push: `git push origin feature/my-feature`
 5. Open a Pull Request
+
+---
+
+## Contact
+
+- **Email:** sidvaishnav1234@gmail.com
+- **Phone:** +91 7774842406
+- **Location:** Vasai, India
 
 ---
 
 ## License
 
 MIT
+
+---
+
+<p align="center">by Siddhesh Vaishnav</p>
