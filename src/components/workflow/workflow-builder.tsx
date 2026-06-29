@@ -24,11 +24,13 @@ const availableTools = [
   { id: "split-pdf", name: "Split PDF", category: "PDF" },
   { id: "watermark-pdf", name: "Watermark PDF", category: "PDF" },
   { id: "protect-pdf", name: "Protect PDF", category: "PDF" },
-  { id: "pdf-to-word", name: "PDF to Word", category: "Conversion" },
-  { id: "word-to-pdf", name: "Word to PDF", category: "Conversion" },
-  { id: "resize-image", name: "Resize Image", category: "Image" },
-  { id: "compress-image", name: "Compress Image", category: "Image" },
-  { id: "ocr-pdf", name: "OCR PDF", category: "AI" },
+  { id: "unlock-pdf", name: "Unlock PDF", category: "PDF" },
+  { id: "sign-pdf", name: "Sign PDF", category: "PDF" },
+  { id: "organize-pdf", name: "Organize PDF", category: "PDF" },
+  { id: "rotate-pdf", name: "Rotate PDF", category: "PDF" },
+  { id: "repair-pdf", name: "Repair PDF", category: "PDF" },
+  { id: "images-to-pdf", name: "Images to PDF", category: "Convert" },
+  { id: "booklet-optimizer", name: "Booklet Optimizer", category: "Print" },
 ]
 
 export function WorkflowBuilder({ onSave, onRun }: WorkflowBuilderProps) {

@@ -10,7 +10,7 @@ import {
   Presentation, Code, RefreshCw, Wand2, ZoomIn,
   ScanText, MessageSquare, HelpCircle, Layers, ListChecks,
   BookOpen, Grid3x3, BookCopy, Scissors, Crop,
-  Printer, Heart, ChevronDown, Coffee, Zap, BookMarked
+  Printer, Workflow, Heart, ChevronDown, Coffee, Zap, BookMarked
 } from "lucide-react"
 import { PDF_TOOLS, CONVERSION_TOOLS, POWER_TOOLS, PRINT_TOOLS, TOOL_CATEGORIES } from "@/lib/constants"
 
@@ -20,7 +20,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileSearch, Wrench, FileText, FileImage, FileSpreadsheet,
   Presentation, Code, RefreshCw, Wand2, ZoomIn,
   ScanText, MessageSquare, HelpCircle, Layers, ListChecks,
-  BookOpen, Grid3x3, BookCopy, Scissors, Crop, Printer, Zap,
+  BookOpen, Grid3x3, BookCopy, Scissors, Crop, Printer, Workflow, Zap,
 }
 
 interface ToolDef {
@@ -31,14 +31,12 @@ interface ToolDef {
   category: string
 }
 
-function getBasePath(tool: ToolDef): string {
-  if (tool.category === 'CONVERT') return '/convert'
-  if (tool.category === 'POWER_TOOLS') {
-    if (tool.slug === 'workflow-builder') return '/workflow'
-    if (tool.slug === 'batch-processing') return '/batch'
-    return '/print'
-  }
-  return '/pdf'
+function getHref(tool: ToolDef): string {
+  if (tool.slug === 'workflow-builder') return '/workflow'
+  if (tool.slug === 'batch-processing') return '/batch'
+  if (tool.category === 'CONVERT') return `/convert/${tool.slug}`
+  if (tool.category === 'POWER_TOOLS') return `/print/${tool.slug}`
+  return `/pdf/${tool.slug}`
 }
 
 const categories = TOOL_CATEGORIES.map(cat => {
@@ -210,7 +208,7 @@ export default function ToolsPage() {
                 return (
                   <Link
                     key={tool.slug}
-                    href={`${getBasePath(tool)}/${tool.slug}`}
+                    href={getHref(tool)}
                     className="block rounded-xl border border-gray-100 bg-white p-4 hover:border-gray-200 hover:shadow-sm transition-all group"
                   >
                     {ToolIcon && (

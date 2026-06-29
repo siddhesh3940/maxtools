@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   Layers, Upload, Download, Settings, AlertCircle, CheckCircle,
   Clock, FileText, X, Archive, ChevronLeft
@@ -23,14 +23,25 @@ interface BatchFile {
   name: string
   size: number
   status: FileStatus
+  resultBlob?: Blob
+}
+
+const toolApiMap: Record<string, string> = {
+  "compress-pdf": "compress-pdf",
+  "watermark-pdf": "watermark-pdf",
+  "images-to-pdf": "images-to-pdf",
+  "merge-pdf": "merge-pdf",
+  "split-pdf": "split-pdf",
+  "organize-pdf": "organize-pdf",
 }
 
 const batchOperations = [
-  { value: "compress", label: "Compress Files" },
-  { value: "convert", label: "Convert Format" },
-  { value: "watermark", label: "Add Watermark" },
-  { value: "rename", label: "Rename Files" },
-  { value: "ocr", label: "Run OCR" },
+  { value: "compress-pdf", label: "Compress PDF" },
+  { value: "watermark-pdf", label: "Add Watermark" },
+  { value: "images-to-pdf", label: "Images to PDF" },
+  { value: "merge-pdf", label: "Merge PDF" },
+  { value: "split-pdf", label: "Split PDF" },
+  { value: "organize-pdf", label: "Organize Pages" },
 ]
 
 const containerVariants = {
@@ -44,13 +55,17 @@ const itemVariants = {
 }
 
 export default function BatchPage() {
-  const [operation, setOperation] = React.useState("compress")
+  const [operation, setOperation] = React.useState("compress-pdf")
   const [batchFiles, setBatchFiles] = React.useState<BatchFile[]>([])
   const [processing, setProcessing] = React.useState(false)
   const [overallProgress, setOverallProgress] = React.useState(0)
   const [completed, setCompleted] = React.useState(false)
+  const fileInputRef = React.useRef<Map<string, File>>(new Map())
 
   const handleFilesChange = (files: File[]) => {
+    const map = new Map<string, File>()
+    files.forEach((f) => map.set(f.name, f))
+    fileInputRef.current = map
     setBatchFiles(files.map((f) => ({ name: f.name, size: f.size, status: "pending" as FileStatus })))
   }
 
@@ -60,18 +75,57 @@ export default function BatchPage() {
     setOverallProgress(0)
     setCompleted(false)
 
-    setBatchFiles((prev) => prev.map((f) => ({ ...f, status: "processing" as FileStatus })))
+    const results: BatchFile[] = []
 
     for (let i = 0; i < batchFiles.length; i++) {
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200))
-      setBatchFiles((prev) =>
-        prev.map((f, idx) =>
-          idx === i ? { ...f, status: (Math.random() > 0.15 ? "completed" : "failed") as FileStatus } : f
-        )
-      )
+      const file = fileInputRef.current.get(batchFiles[i].name)
+      if (!file) {
+        results.push({ ...batchFiles[i], status: "failed" })
+        setOverallProgress(Math.round(((i + 1) / batchFiles.length) * 100))
+        continue
+      }
+
+      setBatchFiles((prev) => prev.map((f, idx) => idx === i ? { ...f, status: "processing" } : f))
+
+      try {
+        const formData = new FormData()
+        formData.append("tool", toolApiMap[operation] || operation)
+        formData.append("file", file)
+
+        const res = await fetch("/api/process", { method: "POST", body: formData })
+
+        if (!res.ok) {
+          throw new Error(await res.text())
+        }
+
+        const contentType = res.headers.get("content-type")
+        if (contentType?.includes("application/pdf")) {
+          const blob = await res.blob()
+          results.push({ ...batchFiles[i], status: "completed", resultBlob: blob })
+        } else {
+          const json = await res.json()
+          if (json.success && json.files) {
+            for (const f of json.files) {
+              const byteChars = atob(f.data)
+              const byteArray = new Uint8Array(byteChars.length)
+              for (let bi = 0; bi < byteChars.length; bi++) {
+                byteArray[bi] = byteChars.charCodeAt(bi)
+              }
+              const blob = new Blob([byteArray], { type: "application/pdf" })
+              results.push({ name: f.name, size: blob.size, status: "completed", resultBlob: blob })
+            }
+          } else {
+            throw new Error("Unexpected response format")
+          }
+        }
+      } catch {
+        results.push({ ...batchFiles[i], status: "failed" })
+      }
+
       setOverallProgress(Math.round(((i + 1) / batchFiles.length) * 100))
     }
 
+    setBatchFiles(results)
     setProcessing(false)
     setOverallProgress(100)
     setCompleted(true)
@@ -79,6 +133,28 @@ export default function BatchPage() {
 
   const completedCount = batchFiles.filter((f) => f.status === "completed").length
   const failedCount = batchFiles.filter((f) => f.status === "failed").length
+
+  const downloadResult = (file: BatchFile) => {
+    if (!file.resultBlob) return
+    const url = URL.createObjectURL(file.resultBlob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = file.name.replace(/\.[^.]+$/, "") + "-processed.pdf"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadAll = () => {
+    const completed = batchFiles.filter((f) => f.status === "completed" && f.resultBlob)
+    completed.forEach(downloadResult)
+  }
+
+  const clearAll = () => {
+    setBatchFiles([])
+    fileInputRef.current = new Map()
+    setCompleted(false)
+    setOverallProgress(0)
+  }
 
   const statusIcon = (status: FileStatus) => {
     switch (status) {
@@ -164,6 +240,11 @@ export default function BatchPage() {
                         <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                       {statusBadge(file.status)}
+                      {file.status === "completed" && file.resultBlob && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => downloadResult(file)} title="Download">
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </motion.div>
                   ))}
                 </CardContent>
@@ -239,10 +320,10 @@ export default function BatchPage() {
                   <Progress value={overallProgress} />
                   {completed && (
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1 gap-1">
+                      <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={downloadAll} disabled={completedCount === 0}>
                         <Download className="h-3 w-3" /> Download All
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 gap-1">
+                      <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={clearAll}>
                         <X className="h-3 w-3" /> Clear All
                       </Button>
                     </div>
