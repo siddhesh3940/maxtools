@@ -36,7 +36,12 @@ export default function WorkflowPage() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Workflow Builder</h1>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Workflow className="h-6 w-6 text-primary" />
+            </div>
+            Workflow Builder
+          </h1>
           <p className="text-muted-foreground mt-1">Create and manage automated workflows</p>
         </div>
         <Button onClick={() => setShowBuilder(!showBuilder)} className="gap-2">
