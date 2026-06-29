@@ -84,9 +84,9 @@ export default function ToolsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <header className="border-b bg-white sticky top-0 z-50">
+      <header className="border-b bg-background sticky top-0 z-50">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg">
             <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
@@ -116,17 +116,17 @@ export default function ToolsPage() {
       </header>
 
       {/* Hero */}
-      <section className="border-b bg-white">
+      <section className="border-b bg-background">
         <div className="mx-auto max-w-6xl px-4 py-12">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">Tool Explorer</h1>
-          <p className="mt-2 text-sm text-gray-500 max-w-xl leading-relaxed">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">Tool Explorer</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-xl leading-relaxed">
             Browse our complete collection of free online tools. Merge, split, compress, convert, edit, and
             manage your PDFs, images, and documents — all in your browser, no installation required.
           </p>
           <div className="mt-4">
             <Link
               href="/batch"
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm text-muted-foreground hover:bg-accent transition-colors"
             >
               <Layers className="h-3.5 w-3.5" />
               Batch Processing
@@ -148,7 +148,7 @@ export default function ToolsPage() {
                 placeholder="Search tools..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-gray-400 transition-colors"
+                className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-muted-foreground transition-colors"
               />
             </div>
 
@@ -157,12 +157,12 @@ export default function ToolsPage() {
               <button
                 onClick={() => setActiveCategory("all")}
                 className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  activeCategory === "all" ? "bg-gray-100 text-gray-900 font-medium" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  activeCategory === "all" ? "bg-accent text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-accent"
                 }`}
               >
                 <Layers className="h-4 w-4 shrink-0" />
                 <span className="flex-1 text-left">All Tools</span>
-                <span className={`text-xs rounded-full px-2 py-0.5 ${activeCategory === "all" ? "bg-gray-200 text-gray-700" : "bg-gray-100 text-gray-500"}`}>
+                <span className="text-xs rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                   {allTools.length}
                 </span>
               </button>
@@ -173,12 +173,12 @@ export default function ToolsPage() {
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
                     className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      activeCategory === cat.id ? "bg-gray-100 text-gray-900 font-medium" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      activeCategory === cat.id ? "bg-accent text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
                     <CatIcon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 text-left">{cat.name}</span>
-                    <span className={`text-xs rounded-full px-2 py-0.5 ${activeCategory === cat.id ? "bg-gray-200 text-gray-700" : "bg-gray-100 text-gray-500"}`}>
+                    <span className="text-xs rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                       {cat.tools.length}
                     </span>
                   </button>
@@ -191,15 +191,15 @@ export default function ToolsPage() {
         {/* Tool Grid */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               {activeCategory === "all" ? "All Tools" : categories.find((c) => c.id === activeCategory)?.name}
             </h2>
-            <span className="text-xs rounded-full bg-gray-100 px-2 py-0.5 text-gray-500">{searchedTools.length}</span>
+            <span className="text-xs rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{searchedTools.length}</span>
           </div>
 
           {searchedTools.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-sm">No tools found matching &quot;{search}&quot;</p>
+              <p className="text-muted-foreground text-sm">No tools found matching &quot;{search}&quot;</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -209,15 +209,15 @@ export default function ToolsPage() {
                   <Link
                     key={tool.slug}
                     href={getHref(tool)}
-                    className="block rounded-xl border border-gray-100 bg-white p-4 hover:border-gray-200 hover:shadow-sm transition-all group"
+                    className="block rounded-xl border bg-card p-4 hover:border-muted-foreground/30 hover:shadow-sm transition-all group"
                   >
                     {ToolIcon && (
-                      <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors">
-                        <ToolIcon className="h-4 w-4 text-gray-600" />
+                      <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted group-hover:bg-accent transition-colors">
+                        <ToolIcon className="h-4 w-4 text-muted-foreground" />
                       </div>
                     )}
-                    <h3 className="text-sm font-semibold text-gray-900">{tool.name}</h3>
-                    <p className="mt-1 text-xs text-gray-500 leading-relaxed">{tool.description}</p>
+                    <h3 className="text-sm font-semibold text-card-foreground">{tool.name}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{tool.description}</p>
                   </Link>
                 )
               })}
@@ -231,7 +231,7 @@ export default function ToolsPage() {
         href="https://buymeacoffee.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 transition-colors"
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg hover:opacity-90 transition-opacity"
       >
         <Heart className="h-5 w-5 text-pink-400 fill-pink-400" />
       </a>
