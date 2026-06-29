@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import prisma from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/lib/api-helpers';
+import type { Prisma } from '@prisma/client';
 
 export async function POST(
   request: NextRequest,
@@ -27,7 +28,7 @@ export async function POST(
         data: {
           userId,
           type: step.tool,
-          config: step.config || {},
+          config: (step.config || {}) as Prisma.InputJsonValue,
           status: 'PENDING',
         },
       });

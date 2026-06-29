@@ -1,14 +1,12 @@
 import { NextRequest } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/lib/api-helpers';
-import { PDF_TOOLS, CONVERSION_TOOLS, IMAGE_TOOLS, AI_TOOLS, PRINT_TOOLS, TOOL_CATEGORIES } from '@/lib/constants';
+import { PDF_TOOLS, CONVERSION_TOOLS, POWER_TOOLS, TOOL_CATEGORIES } from '@/lib/constants';
 
 const allTools = [
-  ...PDF_TOOLS.map((t) => ({ ...t, category: 'PDF' as const })),
-  ...CONVERSION_TOOLS.map((t) => ({ ...t, category: 'CONVERSION' as const })),
-  ...IMAGE_TOOLS.map((t) => ({ ...t, category: 'IMAGE' as const })),
-  ...AI_TOOLS.map((t) => ({ ...t, category: 'AI' as const })),
-  ...PRINT_TOOLS.map((t) => ({ ...t, category: 'PRINT' as const })),
+  ...POWER_TOOLS.map((t) => ({ ...t, category: 'POWER_TOOLS' as const })),
+  ...PDF_TOOLS.map((t) => ({ ...t, category: t.category })),
+  ...CONVERSION_TOOLS.map((t) => ({ ...t, category: 'CONVERT' as const })),
 ];
 
 export async function GET(

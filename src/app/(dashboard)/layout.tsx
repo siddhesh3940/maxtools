@@ -1,4 +1,5 @@
-import { Providers } from "@/providers/providers"
+"use client"
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 
 export default function DashboardRootLayout({
@@ -6,9 +7,5 @@ export default function DashboardRootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <Providers>
-      <DashboardLayout>{children}</DashboardLayout>
-    </Providers>
-  )
+  return <DashboardLayout>{children}</DashboardLayout>
 }

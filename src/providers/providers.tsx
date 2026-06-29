@@ -6,13 +6,7 @@ import { Toaster } from "@/components/ui/toast"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-      scriptProps={{ "data-cfasync": "false" }}
-    >
+    <ThemeProvider>
       {children}
       <Toaster />
     </ThemeProvider>

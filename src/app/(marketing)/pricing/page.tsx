@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { Header } from "@/components/layout/header"
+import { Footer } from "@/components/layout/footer"
 
 const plans = [
   {
@@ -85,7 +87,9 @@ export default function PricingPage() {
   const [yearly, setYearly] = React.useState(false)
 
   return (
-    <div className="py-20 lg:py-28">
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <div className="flex-1 py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -189,6 +193,8 @@ export default function PricingPage() {
           </p>
         </motion.div>
       </div>
+    </div>
+      <Footer />
     </div>
   )
 }

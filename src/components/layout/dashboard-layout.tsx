@@ -1,315 +1,185 @@
 "use client"
 
-import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/providers/theme-provider"
 import { UserButton } from "@clerk/nextjs"
 import {
-  Box, LayoutDashboard, Combine, FileType, Image, Wand2, Printer,
-  Workflow, Layers, Menu, X, Sun, Moon, Search, Bell, ChevronDown,
-  ChevronLeft, ChevronRight, Split, FileUp, FileDown, FileImage,
-  Folders, Shuffle, Scan, Merge
+  LayoutDashboard, FileText, Wand2, Printer, Image,
+  Sun, Moon, Menu, X, ChevronDown, ChevronRight, Box,
+  Zap, FileDown, Combine, RefreshCw, PenLine, Lock, Layers
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { PDF_TOOLS, CONVERSION_TOOLS } from "@/lib/constants"
+import * as React from "react"
 
-interface NavItem {
-  href: string
+interface SidebarCategory {
   label: string
   icon: React.ComponentType<{ className?: string }>
+  tools: readonly { name: string; slug: string; description: string }[]
+  getPath: (slug: string) => string
 }
 
-interface NavGroup {
-  title: string
-  icon: React.ComponentType<{ className?: string }>
-  items: NavItem[]
-}
-
-const navGroups: NavGroup[] = [
+const categories: SidebarCategory[] = [
   {
-    title: "PDF Tools",
-    icon: Combine,
-    items: [
-      { href: "/dashboard/pdf/merge", label: "Merge PDF", icon: Merge },
-      { href: "/dashboard/pdf/split", label: "Split PDF", icon: Split },
-      { href: "/dashboard/pdf/compress", label: "Compress PDF", icon: FileDown },
-      { href: "/dashboard/pdf/convert", label: "PDF to Word", icon: FileUp },
-      { href: "/dashboard/pdf/scan", label: "OCR & Scan", icon: Scan },
+    label: "Power Tools", icon: Zap,
+    tools: [
+      { name: "Booklet Optimizer", slug: "booklet-optimizer", description: "Optimize booklets for printing" },
+      { name: "Smart Print Mode", slug: "smart-print", description: "Intelligent print layout optimization" },
+      { name: "Workflow Builder", slug: "workflow-builder", description: "Build automated workflows" },
+      { name: "Batch Processing", slug: "batch-processing", description: "Process multiple files at once" },
     ],
+    getPath: (slug) => slug === "workflow-builder" ? "/workflow" : slug === "batch-processing" ? "/batch" : `/print/${slug}`,
   },
   {
-    title: "Conversion",
-    icon: Shuffle,
-    items: [
-      { href: "/dashboard/convert/pdf", label: "To PDF", icon: FileType },
-      { href: "/dashboard/convert/image", label: "To Image", icon: FileImage },
-      { href: "/dashboard/convert/doc", label: "To Document", icon: Folders },
-    ],
+    label: "Compress", icon: FileDown,
+    tools: PDF_TOOLS.filter(t => t.category === 'COMPRESS'),
+    getPath: (slug) => `/pdf/${slug}`,
   },
   {
-    title: "Image Tools",
-    icon: Image,
-    items: [
-      { href: "/dashboard/image/resize", label: "Resize", icon: Scan },
-      { href: "/dashboard/image/compress", label: "Compress", icon: FileDown },
-      { href: "/dashboard/image/convert", label: "Convert Format", icon: FileImage },
-    ],
+    label: "Merge & Split", icon: Combine,
+    tools: PDF_TOOLS.filter(t => t.category === 'MERGE_SPLIT'),
+    getPath: (slug) => `/pdf/${slug}`,
   },
   {
-    title: "AI Tools",
-    icon: Wand2,
-    items: [
-      { href: "/dashboard/ai/summarize", label: "Summarize", icon: Split },
-      { href: "/dashboard/ai/extract", label: "Extract Data", icon: Scan },
-      { href: "/dashboard/ai/translate", label: "Translate", icon: Shuffle },
-    ],
+    label: "Convert", icon: RefreshCw,
+    tools: CONVERSION_TOOLS,
+    getPath: (slug) => `/convert/${slug}`,
   },
   {
-    title: "Print Production",
-    icon: Printer,
-    items: [
-      { href: "/dashboard/print/prepress", label: "Prepress Check", icon: Scan },
-      { href: "/dashboard/print/color", label: "Color Management", icon: FileImage },
-      { href: "/dashboard/print/impose", label: "Imposition", icon: Layers },
-    ],
+    label: "Edit & Sign", icon: PenLine,
+    tools: PDF_TOOLS.filter(t => t.category === 'EDIT_SIGN'),
+    getPath: (slug) => `/pdf/${slug}`,
+  },
+  {
+    label: "Security", icon: Lock,
+    tools: PDF_TOOLS.filter(t => t.category === 'SECURITY'),
+    getPath: (slug) => `/pdf/${slug}`,
+  },
+  {
+    label: "Organize", icon: Layers,
+    tools: PDF_TOOLS.filter(t => t.category === 'ORGANIZE'),
+    getPath: (slug) => `/pdf/${slug}`,
   },
 ]
 
-const singleLinks: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/workflow", label: "Workflow Builder", icon: Workflow },
-  { href: "/dashboard/batch", label: "Batch Processing", icon: Layers },
-]
-
-function Sidebar({
-  collapsed,
-  onToggle,
-  onMobileClose,
-}: {
-  collapsed: boolean
-  onToggle: () => void
-  onMobileClose?: () => void
-}) {
+export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({
-    "PDF Tools": true,
-  })
+  const { resolvedTheme, setTheme } = useTheme()
+  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({})
 
-  const toggleGroup = (title: string) => {
-    setExpandedGroups((prev) => ({ ...prev, [title]: !prev[title] }))
+  const toggleCategory = (label: string) => {
+    setExpanded((prev) => ({ ...prev, [label]: !prev[label] }))
   }
 
-  const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === "/dashboard"
-    return pathname.startsWith(href)
-  }
-
-  const linkClass = (href: string) =>
-    cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-      isActive(href)
-        ? "bg-primary/10 text-primary"
-        : "text-muted-foreground hover:text-foreground hover:bg-accent"
-    )
+  // Auto-expand active category
+  React.useEffect(() => {
+    for (const cat of categories) {
+      for (const tool of cat.tools) {
+        if (pathname === cat.getPath(tool.slug)) {
+          setExpanded((prev) => ({ ...prev, [cat.label]: true }))
+        }
+      }
+    }
+  }, [pathname])
 
   return (
-    <aside
-      className={cn(
-        "flex flex-col border-r bg-background transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+    <div className="flex h-screen bg-background">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-    >
-      <div className="flex h-16 items-center justify-between px-4 border-b">
-        {!collapsed && (
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 border-r bg-background transform transition-transform lg:relative lg:translate-x-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex h-14 items-center justify-between px-4 border-b">
           <Link href="/" className="flex items-center gap-2">
-            <Box className="h-6 w-6 text-primary shrink-0" />
+            <Box className="h-5 w-5 text-primary" />
             <span className="font-bold">MaxTools</span>
           </Link>
-        )}
-        {collapsed && (
-          <Link href="/" className="mx-auto">
-            <Box className="h-6 w-6 text-primary" />
-          </Link>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggle}
-          className={cn("hidden lg:flex", collapsed && "mx-auto")}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      <ScrollArea className="flex-1 py-2">
-        <nav className="px-2 space-y-1">
-          {singleLinks.map((link) => (
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <ScrollArea className="flex-1 py-2">
+          <nav className="px-2 space-y-1">
             <Link
-              key={link.href}
-              href={link.href}
-              onClick={onMobileClose}
-              className={cn(linkClass(link.href), collapsed && "justify-center px-0")}
-              title={collapsed ? link.label : undefined}
+              href="/dashboard"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/dashboard" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
             >
-              <link.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{link.label}</span>}
+              <LayoutDashboard className="h-4 w-4 shrink-0" />
+              Dashboard
             </Link>
-          ))}
 
-          {!collapsed && <Separator className="my-2" />}
-
-          {navGroups.map((group) => (
-            <div key={group.title}>
-              <button
-                onClick={() => !collapsed && toggleGroup(group.title)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-accent",
-                  collapsed && "justify-center px-0"
-                )}
-                title={collapsed ? group.title : undefined}
-              >
-                <group.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span className="flex-1 text-left">{group.title}</span>
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 transition-transform",
-                        expandedGroups[group.title] && "rotate-180"
-                      )}
-                    />
-                  </>
-                )}
-              </button>
-              {!collapsed && (
-                <AnimatePresence initial={false}>
-                  {expandedGroups[group.title] && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="ml-4 pl-3 border-l space-y-1 py-1">
-                        {group.items.map((item) => (
+            {categories.map((cat) => {
+              return (
+                <div key={cat.label}>
+                  <button
+                    onClick={() => toggleCategory(cat.label)}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}
+                  >
+                    <cat.icon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 text-left">{cat.label}</span>
+                    {expanded[cat.label] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </button>
+                  {expanded[cat.label] && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l pl-2">
+                      {cat.tools.map((tool) => {
+                        const toolPath = cat.getPath(tool.slug)
+                        const isToolActive = pathname === toolPath
+                        return (
                           <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={onMobileClose}
+                            key={tool.slug}
+                            href={toolPath}
+                            onClick={() => setSidebarOpen(false)}
                             className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              isActive(item.href)
-                                ? "bg-primary/10 text-primary"
+                              "flex items-center gap-2 rounded-md px-3 py-1.5 text-xs transition-colors",
+                              isToolActive
+                                ? "bg-primary/10 text-primary font-medium"
                                 : "text-muted-foreground hover:text-foreground hover:bg-accent"
                             )}
                           >
-                            <item.icon className="h-4 w-4 shrink-0" />
-                            {item.label}
+                            <span className="h-1 w-1 rounded-full bg-current shrink-0" />
+                            {tool.name}
                           </Link>
-                        ))}
-                      </div>
-                    </motion.div>
+                        )
+                      })}
+                    </div>
                   )}
-                </AnimatePresence>
-              )}
-            </div>
-          ))}
-        </nav>
-      </ScrollArea>
-    </aside>
-  )
-}
+                </div>
+              )
+            })}
+          </nav>
+        </ScrollArea>
+      </aside>
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
-  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
-  const { theme, setTheme } = useTheme()
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <div className="hidden lg:flex">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-      </div>
-
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-              onClick={() => setMobileSidebarOpen(false)}
-            />
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 z-50 w-72 lg:hidden"
-            >
-              <Sidebar
-                collapsed={false}
-                onToggle={() => {}}
-                onMobileClose={() => setMobileSidebarOpen(false)}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
+      {/* Main area */}
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setMobileSidebarOpen(true)}
-            aria-label="Open sidebar"
-          >
-            <Menu className="h-5 w-5" />
+        <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+            <Menu className="h-4 w-4" />
           </Button>
-
-          <div className="flex-1 max-w-md hidden sm:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search tools..."
-                className="pl-9 h-9"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 ml-auto">
-            <Button variant="ghost" size="icon" aria-label="Notifications">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-            <UserButton afterSignOutUrl="/" />
-          </div>
+          <div className="flex-1" />
+          <Button variant="ghost" size="icon" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+            <Sun className="h-4 w-4 rotate-0 scale-100 dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 dark:rotate-0 dark:scale-100" />
+          </Button>
+          <UserButton afterSignOutUrl="/" />
         </header>
-
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   )

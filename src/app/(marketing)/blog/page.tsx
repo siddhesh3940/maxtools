@@ -5,6 +5,8 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Calendar, Clock, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Header } from "@/components/layout/header"
+import { Footer } from "@/components/layout/footer"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -77,7 +79,9 @@ export default function BlogPage() {
     : posts.filter((p) => p.category === selectedCategory)
 
   return (
-    <div className="py-20 lg:py-28">
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <div className="flex-1 py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -177,6 +181,8 @@ export default function BlogPage() {
           </div>
         )}
       </div>
+    </div>
+      <Footer />
     </div>
   )
 }

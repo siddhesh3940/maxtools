@@ -3,6 +3,8 @@
 import * as React from "react"
 import { motion } from "framer-motion"
 import { Mail, MessageSquare, Send, Phone, MapPin, Clock } from "lucide-react"
+import { Header } from "@/components/layout/header"
+import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,7 +21,9 @@ const contactInfo = [
 
 export default function ContactPage() {
   return (
-    <div className="py-20 lg:py-28">
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <div className="flex-1 py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -116,6 +120,8 @@ export default function ContactPage() {
           </motion.div>
         </div>
       </div>
+    </div>
+      <Footer />
     </div>
   )
 }
