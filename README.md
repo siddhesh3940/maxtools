@@ -7,6 +7,18 @@
 
 ---
 
+## Screenshots
+
+![Homepage](screenshots/Screenshot%202026-06-30%20000248.png)
+
+![Tools](screenshots/Screenshot%202026-06-30%20000256.png)
+
+![Dashboard](screenshots/Screenshot%202026-06-30%20000310.png)
+
+![PDF Tool](screenshots/Screenshot%202026-06-30%20000350.png)
+
+---
+
 ## Features
 
 - **PDF Tools** — Merge, split, compress, rotate, watermark, sign, flatten, unlock, organize pages
