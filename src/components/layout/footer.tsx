@@ -20,6 +20,9 @@ export function Footer() {
         <div className="mt-4 text-center text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} MaxTools. All rights reserved.
         </div>
+        <div className="mt-1 text-center text-xs text-muted-foreground/50">
+          by Siddhesh Vaishnav
+        </div>
       </div>
     </footer>
   )
