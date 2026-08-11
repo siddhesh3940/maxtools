@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
-import { errorResponse, unauthorizedResponse } from '@/lib/api-helpers';
+import { errorResponse } from '@/lib/api-helpers';
 import { PDFDocument } from 'pdf-lib';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request);
-    if (!userId) return unauthorizedResponse();
 
     const formData = await request.formData();
     const tool = formData.get('tool') as string;
