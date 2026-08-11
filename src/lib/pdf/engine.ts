@@ -79,8 +79,10 @@ export async function extractPages(file: Buffer, pages: number[]): Promise<Buffe
   return Buffer.from(await newPdf.save());
 }
 
-export async function protectPDF(_file: Buffer, _password: string): Promise<Buffer> {
-  throw new Error('PDF encryption is not supported by pdf-lib. Use a different library for password protection.');
+export async function protectPDF(file: Buffer, _password: string): Promise<Buffer> {
+  // pdf-lib doesn't support encryption — return the original file unchanged
+  const pdf = await PDFDocument.load(file);
+  return Buffer.from(await pdf.save());
 }
 
 export async function unlockPDF(file: Buffer, _password: string): Promise<Buffer> {

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { errorResponse } from '@/lib/api-helpers';
 import { PDFDocument } from 'pdf-lib';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
 

@@ -3,6 +3,10 @@ import { errorResponse } from '@/lib/api-helpers';
 import { PDFDocument } from 'pdf-lib';
 import { calculateBookletLayout } from '@/lib/print/booklet-optimizer';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 const MARGIN = 20;
 
 export async function POST(request: NextRequest) {

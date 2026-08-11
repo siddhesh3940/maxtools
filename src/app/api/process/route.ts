@@ -3,6 +3,10 @@ import { errorResponse } from '@/lib/api-helpers';
 import { mergePDFs, splitPDF, compressPDF, rotatePDFPages, reorderPages, deletePages, extractPages, addWatermark, protectPDF, unlockPDF, flattenPDF, signPDF } from '@/lib/pdf/engine';
 import { PDFDocument } from 'pdf-lib';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
 
